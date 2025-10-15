@@ -1,119 +1,215 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 
-type Chapter = {
-  id: number;
-  title: string;
-  location: string;
-  character: string;
-  gradient: string;
-  description: string;
+type Character = {
+  id: string;
+  name: string;
+  emoji: string;
+  position: number;
   dialogue: string[];
-  completed: boolean;
+  met: boolean;
+};
+
+type Level = {
+  id: number;
+  name: string;
+  gradient: string;
+  characters: Character[];
+  width: number;
 };
 
 const Index = () => {
-  const [currentChapter, setCurrentChapter] = useState<number | null>(null);
-  const [dialogueIndex, setDialogueIndex] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(0);
+  const [playerPosition, setPlayerPosition] = useState(50);
+  const [isMoving, setIsMoving] = useState(false);
+  const [direction, setDirection] = useState<'left' | 'right'>('right');
+  const [activeDialogue, setActiveDialogue] = useState<Character | null>(null);
+  const [dialogueIndex, setDialogueIndex] = useState(0);
+  const [keys, setKeys] = useState({ left: false, right: false });
 
-  const chapters: Chapter[] = [
+  const levels: Level[] = [
+    {
+      id: 0,
+      name: 'Лес Roblox',
+      gradient: 'from-purple-900 via-purple-700 to-pink-500',
+      width: 2000,
+      characters: [
+        {
+          id: 'taph',
+          name: 'Taph',
+          emoji: '🗿',
+          position: 800,
+          dialogue: ['👋', '🫵', '🗿', '🤷', 'Silent Salt ничего не понял...'],
+          met: false
+        }
+      ]
+    },
     {
       id: 1,
-      title: 'Глава 1: Таф',
-      location: 'Лес Roblox',
-      character: 'Taph из Forsaken',
-      gradient: 'from-purple-900 via-purple-700 to-pink-500',
-      description: 'Silent Salt встречает Тафа, который пытается научить его говорить через эмодзи.',
-      dialogue: [
-        '👋',
-        '🫵',
-        '🗿',
-        '🤷',
-        'Silent Salt ничего не понял и идёт дальше...'
-      ],
-      completed: false
+      name: 'Тёмный лес',
+      gradient: 'from-gray-900 via-red-900 to-black',
+      width: 2000,
+      characters: [
+        {
+          id: 'jason',
+          name: 'Jason Voorhees',
+          emoji: '🔪',
+          position: 900,
+          dialogue: ['Ki... ki...', 'Ma... ma...', 'Ki ki ma...', 'Silent Salt снова не понял...'],
+          met: false
+        }
+      ]
     },
     {
       id: 2,
-      title: 'Глава 2: Джейсон',
-      location: 'Тёмный лес',
-      character: 'Jason Voorhees',
-      gradient: 'from-gray-900 via-red-900 to-black',
-      description: 'В глубине леса Silent Salt находит Джейсона Вурхиза.',
-      dialogue: [
-        'Ki... ki...',
-        'Ma... ma...',
-        'Ki ki ma...',
-        'Silent Salt снова ничего не понял...'
-      ],
-      completed: false
+      name: 'Чёрный мир',
+      gradient: 'from-black via-gray-900 to-black',
+      width: 2000,
+      characters: [
+        {
+          id: 'gaster',
+          name: 'W.D. Gaster',
+          emoji: '👤',
+          position: 1000,
+          dialogue: [
+            '✋︎ ⧫︎♒︎♓︎■︎🙵 ⍓︎□︎◆︎🕯︎❒︎♏︎ ♋︎',
+            '●︎♓︎⧫︎⧫︎●︎♏︎ □︎◆︎⧫︎ □︎♐︎ ⧫︎□︎◆︎♍︎♒︎',
+            '⬥︎♓︎⧫︎♒︎ ❒︎♏︎♋︎●︎♓︎⧫︎⍓︎📪︎ ♌︎◆︎♎︎♎︎⍓︎📬︎',
+            'Гастер отправляет тебя домой...'
+          ],
+          met: false
+        }
+      ]
     },
     {
       id: 3,
-      title: 'Глава 3: Гастер',
-      location: 'Чёрный мир',
-      character: 'Gaster из Undertale',
-      gradient: 'from-black via-gray-900 to-black',
-      description: 'Silent Salt падает в яму и оказывается в полностью чёрном мире.',
-      dialogue: [
-        '✋︎ ⧫︎♒︎♓︎■︎🙵 ⍓︎□︎◆︎🕯︎❒︎♏︎ ♋︎',
-        '●︎♓︎⧫︎⧫︎●︎♏︎ □︎◆︎⧫︎ □︎♐︎ ⧫︎□︎◆︎♍︎♒︎',
-        '⬥︎♓︎⧫︎♒︎ ❒︎♏︎♋︎●︎♓︎⧫︎⍓︎📪︎ ♌︎◆︎♎︎♎︎⍓︎📬︎',
-        'Гастер отправляет Silent Salt обратно...'
-      ],
-      completed: false
-    },
-    {
-      id: 4,
-      title: 'Глава 4: Нокс',
-      location: 'Cookie Run Kingdom',
-      character: 'Конь Нокс',
+      name: 'Cookie Run Kingdom',
       gradient: 'from-purple-400 via-pink-300 to-cookie-pink',
-      description: 'Silent Salt возвращается домой и находит своего коня Нокс.',
-      dialogue: [
-        'Привет, мой друг.',
-        'Я вижу, ты искал того, кто научит тебя говорить.',
-        'Ты прошёл долгий путь...',
-        'Теперь послушай меня внимательно...',
-        'Повторяй за мной: "При-вет"',
-        'Silent Salt: "При... вет..."',
-        '🎉 Silent Salt научился говорить!'
-      ],
-      completed: false
+      width: 2000,
+      characters: [
+        {
+          id: 'nox',
+          name: 'Конь Нокс',
+          emoji: '🐴',
+          position: 1100,
+          dialogue: [
+            'Привет, мой друг.',
+            'Я вижу, ты искал того, кто научит тебя говорить.',
+            'Ты прошёл долгий путь...',
+            'Повторяй за мной: "При-вет"',
+            'Silent Salt: "При... вет..."',
+            '🎉 Ты научился говорить!'
+          ],
+          met: false
+        }
+      ]
     }
   ];
 
-  const [chapterList, setChapterList] = useState(chapters);
+  const [levelsState, setLevelsState] = useState(levels);
 
-  const startGame = () => {
-    setGameStarted(true);
-  };
+  const checkNearbyCharacters = useCallback(() => {
+    const level = levelsState[currentLevel];
+    const nearbyChar = level.characters.find(char => 
+      Math.abs(char.position - playerPosition) < 100
+    );
+    
+    if (nearbyChar && !nearbyChar.met) {
+      setActiveDialogue(nearbyChar);
+      setDialogueIndex(0);
+    }
+  }, [levelsState, currentLevel, playerPosition]);
 
-  const startChapter = (chapterId: number) => {
-    setCurrentChapter(chapterId);
-    setDialogueIndex(0);
-  };
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (activeDialogue) return;
+    
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      setKeys(prev => ({ ...prev, left: true }));
+      setDirection('left');
+      setIsMoving(true);
+    }
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      setKeys(prev => ({ ...prev, right: true }));
+      setDirection('right');
+      setIsMoving(true);
+    }
+    if (e.key === ' ' || e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
+      checkNearbyCharacters();
+    }
+  }, [activeDialogue, checkNearbyCharacters]);
+
+  const handleKeyUp = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      setKeys(prev => ({ ...prev, left: false }));
+    }
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      setKeys(prev => ({ ...prev, right: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!gameStarted) return;
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gameStarted, handleKeyDown, handleKeyUp]);
+
+  useEffect(() => {
+    if (!keys.left && !keys.right) {
+      setIsMoving(false);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setPlayerPosition(prev => {
+        const speed = 5;
+        const maxWidth = levelsState[currentLevel].width;
+        
+        if (keys.left) {
+          return Math.max(50, prev - speed);
+        }
+        if (keys.right) {
+          const newPos = prev + speed;
+          if (newPos >= maxWidth - 50) {
+            if (currentLevel < levelsState.length - 1) {
+              setCurrentLevel(currentLevel + 1);
+              return 50;
+            }
+            return maxWidth - 50;
+          }
+          return newPos;
+        }
+        return prev;
+      });
+    }, 16);
+
+    return () => clearInterval(interval);
+  }, [keys, currentLevel, levelsState]);
 
   const nextDialogue = () => {
-    const chapter = chapterList.find(c => c.id === currentChapter);
-    if (chapter && dialogueIndex < chapter.dialogue.length - 1) {
+    if (!activeDialogue) return;
+    
+    if (dialogueIndex < activeDialogue.dialogue.length - 1) {
       setDialogueIndex(dialogueIndex + 1);
     } else {
-      completeChapter();
+      setLevelsState(prev => prev.map(level => ({
+        ...level,
+        characters: level.characters.map(char =>
+          char.id === activeDialogue.id ? { ...char, met: true } : char
+        )
+      })));
+      setActiveDialogue(null);
+      setDialogueIndex(0);
     }
-  };
-
-  const completeChapter = () => {
-    setChapterList(prev =>
-      prev.map(c =>
-        c.id === currentChapter ? { ...c, completed: true } : c
-      )
-    );
-    setCurrentChapter(null);
-    setDialogueIndex(0);
   };
 
   if (!gameStarted) {
@@ -128,14 +224,19 @@ const Index = () => {
                 className="w-48 h-48 mx-auto object-contain"
               />
             </div>
-            <h1 className="font-caveat text-6xl md:text-7xl text-cookie-pink stroke-deep-black">
+            <h1 className="font-caveat text-6xl md:text-7xl text-cookie-pink">
               Silent Salt's Journey
             </h1>
             <p className="text-white text-xl font-montserrat">
-              Отправляйся в путешествие с Silent Salt, который ищет того, кто научит его говорить
+              Путешествуй по локациям, встречай персонажей и учись говорить
             </p>
+            <div className="bg-white/10 rounded-2xl p-4 text-left space-y-2 text-white/80">
+              <p className="font-montserrat text-sm">⌨️ Управление:</p>
+              <p className="font-montserrat text-sm">← → или A/D - движение</p>
+              <p className="font-montserrat text-sm">Пробел или E - общаться</p>
+            </div>
             <Button 
-              onClick={startGame}
+              onClick={() => setGameStarted(true)}
               size="lg"
               className="bg-cookie-pink hover:bg-cookie-pink/90 text-white text-xl px-8 py-6 rounded-full shadow-lg hover:shadow-cookie-pink/50 transition-all duration-300 hover:scale-105"
             >
@@ -148,105 +249,147 @@ const Index = () => {
     );
   }
 
-  if (currentChapter !== null) {
-    const chapter = chapterList.find(c => c.id === currentChapter);
-    if (!chapter) return null;
+  const currentLevelData = levelsState[currentLevel];
+  const scrollOffset = Math.max(0, playerPosition - 400);
 
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${chapter.gradient} flex items-center justify-center p-4`}>
-        <Card className="max-w-3xl w-full bg-black/40 backdrop-blur-lg border-white/20 p-6 md:p-10 animate-slide-in">
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="font-caveat text-5xl text-cookie-pink mb-2">
-                {chapter.title}
-              </h2>
-              <p className="text-white/80 font-montserrat text-lg">
-                {chapter.location}
-              </p>
-            </div>
-
-            <div className="bg-white/10 rounded-3xl p-8 min-h-[200px] flex items-center justify-center">
-              <p className="text-white text-3xl md:text-4xl font-caveat text-center animate-fade-in">
-                {chapter.dialogue[dialogueIndex]}
-              </p>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <div className="text-white/60 font-montserrat text-sm">
-                {dialogueIndex + 1} / {chapter.dialogue.length}
-              </div>
-              <Button
-                onClick={nextDialogue}
-                className="bg-white text-deep-black hover:bg-white/90 rounded-full px-6 py-3"
-              >
-                {dialogueIndex < chapter.dialogue.length - 1 ? 'Далее' : 'Завершить'}
-                <Icon name="ChevronRight" className="ml-2" size={20} />
-              </Button>
-            </div>
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${currentLevelData.gradient} overflow-hidden relative`}>
+      <div className="absolute top-4 left-4 z-20">
+        <Card className="bg-black/50 backdrop-blur-lg border-white/20 p-4">
+          <p className="text-white font-caveat text-2xl mb-2">{currentLevelData.name}</p>
+          <div className="space-y-1 text-white/70 text-sm font-montserrat">
+            <p>← → / A D - движение</p>
+            <p>Пробел / E - общаться</p>
           </div>
         </Card>
       </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-magic via-purple-900 to-deep-black p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12 animate-fade-in">
-          <h1 className="font-caveat text-6xl text-cookie-pink mb-4">
-            Silent Salt's Journey
-          </h1>
-          <p className="text-white font-montserrat text-xl">
-            Выбери главу для продолжения истории
+      <div className="absolute top-4 right-4 z-20">
+        <Card className="bg-black/50 backdrop-blur-lg border-white/20 p-4">
+          <p className="text-white font-montserrat text-sm">
+            Уровень {currentLevel + 1} / {levelsState.length}
           </p>
+        </Card>
+      </div>
+
+      <div 
+        className="relative h-screen transition-transform duration-75"
+        style={{ 
+          transform: `translateX(-${scrollOffset}px)`,
+          width: `${currentLevelData.width}px`
+        }}
+      >
+        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black/50 to-transparent" />
+        
+        <div 
+          className="absolute bottom-32 transition-all duration-75"
+          style={{ 
+            left: `${playerPosition}px`,
+            transform: `scaleX(${direction === 'left' ? -1 : 1})`
+          }}
+        >
+          <div className={`${isMoving ? 'animate-bounce' : ''}`}>
+            <img 
+              src="https://cdn.poehali.dev/files/e5ee1c7e-8e80-4fdf-ba85-d81ddec424dd.png" 
+              alt="Silent Salt" 
+              className="w-32 h-32 object-contain drop-shadow-2xl"
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {chapterList.map((chapter, index) => (
-            <Card
-              key={chapter.id}
-              className={`bg-gradient-to-br ${chapter.gradient} border-white/20 p-6 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
-                chapter.completed ? 'opacity-60' : ''
-              } ${index > 0 && !chapterList[index - 1].completed ? 'opacity-40 cursor-not-allowed' : ''}`}
-              onClick={() => {
-                if (index === 0 || chapterList[index - 1].completed) {
-                  startChapter(chapter.id);
-                }
-              }}
+        {currentLevelData.characters.map(char => {
+          const distance = Math.abs(char.position - playerPosition);
+          const isNearby = distance < 100;
+          
+          return (
+            <div
+              key={char.id}
+              className="absolute bottom-32"
+              style={{ left: `${char.position}px` }}
             >
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-caveat text-3xl text-white mb-2">
-                      {chapter.title}
-                    </h3>
-                    <p className="text-white/80 font-montserrat text-sm mb-1">
-                      📍 {chapter.location}
-                    </p>
-                    <p className="text-white/70 font-montserrat text-sm">
-                      🎭 {chapter.character}
-                    </p>
-                  </div>
-                  {chapter.completed && (
-                    <div className="bg-green-500 rounded-full p-2">
-                      <Icon name="Check" size={20} className="text-white" />
-                    </div>
-                  )}
+              <div className="relative">
+                <div className={`text-8xl transition-all duration-300 ${char.met ? 'opacity-50' : ''}`}>
+                  {char.emoji}
                 </div>
-                <p className="text-white/90 font-montserrat text-sm">
-                  {chapter.description}
-                </p>
-                {index > 0 && !chapterList[index - 1].completed && (
-                  <div className="flex items-center gap-2 text-white/50 text-sm">
-                    <Icon name="Lock" size={16} />
-                    <span>Доступно после прохождения предыдущей главы</span>
+                {isNearby && !activeDialogue && !char.met && (
+                  <div className="absolute -top-16 left-1/2 -translate-x-1/2 animate-bounce">
+                    <div className="bg-white text-black px-4 py-2 rounded-full font-montserrat text-sm whitespace-nowrap shadow-lg">
+                      Нажми E или Пробел
+                    </div>
                   </div>
                 )}
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                  <p className="text-white font-caveat text-2xl drop-shadow-lg">
+                    {char.name}
+                  </p>
+                </div>
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+          );
+        })}
       </div>
+
+      {activeDialogue && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 flex items-center justify-center p-4 animate-fade-in">
+          <Card className="max-w-2xl w-full bg-gradient-to-br from-purple-900/90 to-black/90 backdrop-blur-lg border-cookie-pink/50 p-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="text-6xl">{activeDialogue.emoji}</div>
+                <div>
+                  <h3 className="font-caveat text-4xl text-cookie-pink">
+                    {activeDialogue.name}
+                  </h3>
+                  <p className="text-white/70 font-montserrat text-sm">
+                    пытается научить тебя говорить
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/10 rounded-3xl p-8 min-h-[150px] flex items-center justify-center">
+                <p className="text-white text-4xl font-caveat text-center">
+                  {activeDialogue.dialogue[dialogueIndex]}
+                </p>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="text-white/60 font-montserrat text-sm">
+                  {dialogueIndex + 1} / {activeDialogue.dialogue.length}
+                </div>
+                <Button
+                  onClick={nextDialogue}
+                  className="bg-cookie-pink hover:bg-cookie-pink/90 text-white rounded-full px-6 py-3"
+                >
+                  {dialogueIndex < activeDialogue.dialogue.length - 1 ? 'Далее' : 'Закрыть'}
+                  <Icon name="ChevronRight" className="ml-2" size={20} />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {currentLevel === levelsState.length - 1 && 
+       levelsState[currentLevel].characters.every(char => char.met) && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 flex items-center justify-center p-4 animate-fade-in">
+          <Card className="max-w-xl w-full bg-gradient-to-br from-cookie-pink to-purple-magic p-12 text-center">
+            <div className="space-y-6">
+              <div className="text-8xl animate-bounce">🎉</div>
+              <h2 className="font-caveat text-6xl text-white">
+                Поздравляю!
+              </h2>
+              <p className="text-white text-2xl font-montserrat">
+                Silent Salt научился говорить благодаря твоей помощи!
+              </p>
+              <Button
+                onClick={() => window.location.reload()}
+                className="bg-white text-purple-900 hover:bg-white/90 text-xl px-8 py-4 rounded-full"
+              >
+                Играть заново
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
