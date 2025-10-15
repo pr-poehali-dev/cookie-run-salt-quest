@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
+import Joystick from '@/components/Joystick';
 
 type Character = {
   id: string;
@@ -16,6 +17,7 @@ type Level = {
   id: number;
   name: string;
   gradient: string;
+  backgroundImage?: string;
   characters: Character[];
   width: number;
 };
@@ -29,12 +31,24 @@ const Index = () => {
   const [activeDialogue, setActiveDialogue] = useState<Character | null>(null);
   const [dialogueIndex, setDialogueIndex] = useState(0);
   const [keys, setKeys] = useState({ left: false, right: false });
+  const [joystickDirection, setJoystickDirection] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const levels: Level[] = [
     {
       id: 0,
-      name: 'Лес Roblox',
+      name: 'Жуткий Отель - Forsaken',
       gradient: 'from-purple-900 via-purple-700 to-pink-500',
+      backgroundImage: 'https://cdn.poehali.dev/files/5c0be242-eb6d-4b22-9784-f34b3f3cd67d.png',
       width: 2000,
       characters: [
         {
@@ -164,21 +178,28 @@ const Index = () => {
   }, [gameStarted, handleKeyDown, handleKeyUp]);
 
   useEffect(() => {
-    if (!keys.left && !keys.right) {
-      setIsMoving(false);
-      return;
-    }
+    const hasMovement = keys.left || keys.right || joystickDirection.x !== 0;
+    setIsMoving(hasMovement);
+    
+    if (!hasMovement) return;
 
     const interval = setInterval(() => {
       setPlayerPosition(prev => {
         const speed = 5;
         const maxWidth = levelsState[currentLevel].width;
         
-        if (keys.left) {
-          return Math.max(50, prev - speed);
+        let movement = 0;
+        if (keys.left) movement = -speed;
+        if (keys.right) movement = speed;
+        if (joystickDirection.x !== 0) movement = joystickDirection.x * speed;
+        
+        if (movement < 0) {
+          setDirection('left');
+          return Math.max(50, prev + movement);
         }
-        if (keys.right) {
-          const newPos = prev + speed;
+        if (movement > 0) {
+          setDirection('right');
+          const newPos = prev + movement;
           if (newPos >= maxWidth - 50) {
             if (currentLevel < levelsState.length - 1) {
               setCurrentLevel(currentLevel + 1);
@@ -193,7 +214,7 @@ const Index = () => {
     }, 16);
 
     return () => clearInterval(interval);
-  }, [keys, currentLevel, levelsState]);
+  }, [keys, joystickDirection, currentLevel, levelsState]);
 
   const nextDialogue = () => {
     if (!activeDialogue) return;
@@ -232,8 +253,10 @@ const Index = () => {
             </p>
             <div className="bg-white/10 rounded-2xl p-4 text-left space-y-2 text-white/80">
               <p className="font-montserrat text-sm">⌨️ Управление:</p>
-              <p className="font-montserrat text-sm">← → или A/D - движение</p>
-              <p className="font-montserrat text-sm">Пробел или E - общаться</p>
+              <p className="font-montserrat text-sm md:block hidden">← → или A/D - движение</p>
+              <p className="font-montserrat text-sm md:block hidden">Пробел или E - общаться</p>
+              <p className="font-montserrat text-sm md:hidden">Джойстик слева - движение</p>
+              <p className="font-montserrat text-sm md:hidden">Кнопка E справа - общаться</p>
             </div>
             <Button 
               onClick={() => setGameStarted(true)}
@@ -254,12 +277,24 @@ const Index = () => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${currentLevelData.gradient} overflow-hidden relative`}>
+      {currentLevelData.backgroundImage && (
+        <div 
+          className="absolute inset-0 opacity-40 bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url(${currentLevelData.backgroundImage})`,
+            filter: 'blur(2px)'
+          }}
+        />
+      )}
+      
       <div className="absolute top-4 left-4 z-20">
         <Card className="bg-black/50 backdrop-blur-lg border-white/20 p-4">
           <p className="text-white font-caveat text-2xl mb-2">{currentLevelData.name}</p>
           <div className="space-y-1 text-white/70 text-sm font-montserrat">
-            <p>← → / A D - движение</p>
-            <p>Пробел / E - общаться</p>
+            {!isMobile && <p>← → / A D - движение</p>}
+            {!isMobile && <p>Пробел / E - общаться</p>}
+            {isMobile && <p>Джойстик - движение</p>}
+            {isMobile && <p>Кнопка E - общаться</p>}
           </div>
         </Card>
       </div>
@@ -389,6 +424,13 @@ const Index = () => {
             </div>
           </Card>
         </div>
+      )}
+
+      {isMobile && (
+        <Joystick 
+          onMove={(dir) => setJoystickDirection(dir)}
+          onAction={checkNearbyCharacters}
+        />
       )}
     </div>
   );
