@@ -7,7 +7,8 @@ import Joystick from '@/components/Joystick';
 type Character = {
   id: string;
   name: string;
-  emoji: string;
+  emoji?: string;
+  image?: string;
   position: number;
   dialogue: string[];
   met: boolean;
@@ -54,7 +55,7 @@ const Index = () => {
         {
           id: 'taph',
           name: 'Taph',
-          emoji: '🗿',
+          image: 'https://cdn.poehali.dev/files/30bb28b4-85d7-483a-a7aa-1fdb1dcdb0a3.png',
           position: 800,
           dialogue: ['👋', '🫵', '🗿', '🤷', 'Silent Salt ничего не понял...'],
           met: false
@@ -343,13 +344,21 @@ const Index = () => {
               style={{ left: `${char.position}px` }}
             >
               <div className="relative">
-                <div className={`text-8xl transition-all duration-300 ${char.met ? 'opacity-50' : ''}`}>
-                  {char.emoji}
-                </div>
+                {char.image ? (
+                  <img 
+                    src={char.image} 
+                    alt={char.name}
+                    className={`w-32 h-32 object-contain drop-shadow-2xl transition-all duration-300 ${char.met ? 'opacity-50' : ''}`}
+                  />
+                ) : (
+                  <div className={`text-8xl transition-all duration-300 ${char.met ? 'opacity-50' : ''}`}>
+                    {char.emoji}
+                  </div>
+                )}
                 {isNearby && !activeDialogue && !char.met && (
                   <div className="absolute -top-16 left-1/2 -translate-x-1/2 animate-bounce">
                     <div className="bg-white text-black px-4 py-2 rounded-full font-montserrat text-sm whitespace-nowrap shadow-lg">
-                      Нажми E или Пробел
+                      {isMobile ? 'Нажми E' : 'Нажми E или Пробел'}
                     </div>
                   </div>
                 )}
@@ -369,7 +378,15 @@ const Index = () => {
           <Card className="max-w-2xl w-full bg-gradient-to-br from-purple-900/90 to-black/90 backdrop-blur-lg border-cookie-pink/50 p-8">
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="text-6xl">{activeDialogue.emoji}</div>
+                {activeDialogue.image ? (
+                  <img 
+                    src={activeDialogue.image} 
+                    alt={activeDialogue.name}
+                    className="w-20 h-20 object-contain"
+                  />
+                ) : (
+                  <div className="text-6xl">{activeDialogue.emoji}</div>
+                )}
                 <div>
                   <h3 className="font-caveat text-4xl text-cookie-pink">
                     {activeDialogue.name}

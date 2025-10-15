@@ -27,7 +27,7 @@ const Joystick = ({ onMove, onAction }: JoystickProps) => {
       const deltaY = touch.clientY - centerY;
       
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      const maxDistance = 40;
+      const maxDistance = 30;
       
       if (distance > maxDistance) {
         const angle = Math.atan2(deltaY, deltaX);
@@ -64,26 +64,23 @@ const Joystick = ({ onMove, onAction }: JoystickProps) => {
   }, [isDragging, onMove]);
 
   return (
-    <div className="fixed bottom-8 left-8 z-50 md:hidden">
-      <div className="flex gap-4 items-end">
+    <div className="fixed bottom-6 left-4 z-50 md:hidden">
+      <div className="flex gap-3 items-end">
         <div
           ref={joystickRef}
-          className="relative w-32 h-32 bg-white/20 backdrop-blur-lg rounded-full border-4 border-white/40 shadow-2xl"
+          className="relative w-24 h-24 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 shadow-lg"
         >
           <div
-            className="absolute top-1/2 left-1/2 w-12 h-12 bg-cookie-pink rounded-full shadow-lg transition-transform"
+            className="absolute top-1/2 left-1/2 w-10 h-10 bg-white/40 rounded-full shadow-md transition-transform"
             style={{
               transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`
             }}
           />
-          <div className="absolute inset-0 flex items-center justify-center text-white/50 font-montserrat text-xs">
-            Движение
-          </div>
         </div>
         
         <button
           onClick={onAction}
-          className="w-20 h-20 bg-purple-magic backdrop-blur-lg rounded-full border-4 border-white/40 shadow-2xl active:scale-95 transition-transform flex items-center justify-center text-white font-caveat text-2xl"
+          className="w-16 h-16 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 shadow-lg active:scale-95 transition-all flex items-center justify-center text-white/60 font-montserrat text-lg"
         >
           E
         </button>
